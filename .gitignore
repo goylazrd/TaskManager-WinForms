@@ -62,3 +62,4 @@ nunit-*.xml
 *.suo
 *.cache
 /.vs
+/TaskManager/.vs

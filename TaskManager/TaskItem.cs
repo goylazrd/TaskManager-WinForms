@@ -13,9 +13,6 @@ namespace TaskManager
     /// <summary>Задача с названием, описанием, датой, приоритетом и статусом.</summary>
     public class TaskItem
     {
-        /// <summary>Уникальный идентификатор задачи. Задаётся в конструкторе для объектов автоматически.</summary>
-        public int Id { get; }
-
         /// <summary>Название задачи.</summary>
         public string TaskName { get; set; }
 
@@ -36,14 +33,11 @@ namespace TaskManager
 
 
 
-        private static int _countId = 1;
-
         /// <summary>Конструктор. Создаёт новую задачу.</summary>
         public TaskItem(string taskName, string description, 
                         DateTime dueDate, TaskPriority priority, 
                         bool isCompleted = false)
         {
-            Id = _countId++;
             TaskName = taskName;
             Description = description;
             DueDate = dueDate;
@@ -55,7 +49,7 @@ namespace TaskManager
         public override string ToString()
         {
             string check = IsCompleted ? " Да  " : " Нет ";
-            return $"{Id}: [{check}] {TaskName} ({DueDate:dd.MM.yyyy}, {Priority})";
+            return $"[{check}] {TaskName} ({DueDate:dd.MM.yyyy}, {Priority})";
         }
     }
 }
