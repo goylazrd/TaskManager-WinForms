@@ -5,9 +5,9 @@ namespace TaskManager
     /// <summary>Приоритет задачи.</summary>
     public enum TaskPriority
     {
-        Low,
-        Medium,
-        High
+        Низкая,
+        Средняя,
+        Высокая
     }
 
     /// <summary>Задача с названием, описанием, датой, приоритетом и статусом.</summary>
@@ -38,10 +38,10 @@ namespace TaskManager
                         DateTime dueDate, TaskPriority priority, 
                         bool isCompleted = false)
         {
-            TaskName = taskName;
+            TaskName    = taskName;
             Description = description;
-            DueDate = dueDate;
-            Priority = priority;
+            DueDate     = dueDate;
+            Priority    = priority;
             IsCompleted = isCompleted;
         }
 

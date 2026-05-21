@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
@@ -10,18 +11,26 @@ namespace TaskManager
         /// <summary> Список задач </summary>
         private BindingList<TaskItem> _tasks = new BindingList<TaskItem>();
 
+        /// <summary> Скрытая копия всех задач для восстановления при фильтрации </summary>
+        private List<TaskItem> _allTasksCache = new List<TaskItem>();
+
+
         public MainForm()
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            comboBoxPriority.DataSource = Enum.GetValues(typeof(TaskPriority));
+            comboBoxPriority.DataSource = Enum.GetValues(typeof(TaskPriority)); // Ввод данных задачи
+            comboBoxSortby.DataSource = Enum.GetValues(typeof(SortBy));         // СОРТИРовка
+
             dataGridViewTasks.AutoGenerateColumns = false;
             dataGridViewTasks.DataSource = _tasks;
 
             // подписочки
-            dataGridViewTasks.SelectionChanged += DataGridViewTasks_SelectionChanged;
-            dataGridViewTasks.CellFormatting   += DataGridViewTasks_CellFormatting;
+            comboBoxSortby.SelectedIndexChanged += ComboBoxSortby_SelectedIndexChanged;
+            textBoxFiltration.TextChanged       += TextBoxFiltration_TextChanged;
+            dataGridViewTasks.SelectionChanged  += DataGridViewTasks_SelectionChanged;
+            dataGridViewTasks.CellFormatting    += DataGridViewTasks_CellFormatting;
         }
 
 
@@ -45,6 +54,8 @@ namespace TaskManager
             );
 
             _tasks.Add(newTask);
+            _allTasksCache.Add(newTask);
+
             ClearInputs();
         }
 
@@ -75,10 +86,13 @@ namespace TaskManager
             if (IsTaskSelected() == false) 
                 return;
 
+
             foreach (DataGridViewRow row in dataGridViewTasks.SelectedRows)
             {
                 var task = (TaskItem)row.DataBoundItem;
                 _tasks.Remove(task);
+                _allTasksCache.Remove(task);
+
             }
 
             ClearInputs();
@@ -93,7 +107,7 @@ namespace TaskManager
                 "* Добавить: создаёт новую задачу из заполненных полей\n" +
                 "* Редактировать: сохраняет изменения выбранной задачи\n" +
                 "* Удалить: удаляет отмеченные строки\n\n" +
-                "Просроченные невыполненные задачи выделены красным.\n",
+                "Просроченные невыполненные задачи выделены красным. Выполненные - зелёным.\n",
                 "Справка", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -174,5 +188,102 @@ namespace TaskManager
             }
             return true;
         }
+
+        /// <summary>
+        /// Функция сортировки столбцов в DataGridView. Сортирует по одному параметру из enum SortBy
+        /// </summary>
+        private void ComboBoxSortby_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBoxSortby.SelectedItem == null) 
+                return;
+
+            SortBy criteria = (SortBy)comboBoxSortby.SelectedItem;
+
+            var tempList = new List<TaskItem>(_tasks);
+
+            tempList.Sort(delegate (TaskItem x, TaskItem y)
+            {
+                if (x == null && y == null) return 0;
+                if (x == null) return -1;
+                if (y == null) return 1;
+
+                switch (criteria)
+                {
+                    case SortBy.Название:
+                        return string.Compare(x.TaskName, y.TaskName, StringComparison.OrdinalIgnoreCase);
+                    case SortBy.Описание:
+                        return string.Compare(x.Description, y.Description, StringComparison.OrdinalIgnoreCase);
+                    case SortBy.Дата:
+                        return x.DueDate.CompareTo(y.DueDate);
+                    case SortBy.Приоритет:
+                        return x.Priority.CompareTo(y.Priority);
+                    case SortBy.Выполнено:
+                        return x.IsCompleted.CompareTo(y.IsCompleted);
+                    default:
+                        return 0;
+                }
+            });
+
+            _tasks.RaiseListChangedEvents = false;
+            _tasks.Clear();
+            foreach (var item in tempList)
+            {
+                _tasks.Add(item);
+            }
+            _tasks.RaiseListChangedEvents = true;
+            _tasks.ResetBindings();
+        }
+
+        /// <summary>
+        /// Функция фильтрации столбцов в DataGridView. Ищет в "Названии" и "Описание"
+        /// </summary>
+        private void TextBoxFiltration_TextChanged(object sender, EventArgs e)
+        {
+            string filterText = textBoxFiltration.Text.Trim();
+
+            if (_allTasksCache.Count == 0 && _tasks.Count > 0)
+            {
+                _allTasksCache.AddRange(_tasks);
+            }
+
+            _tasks.RaiseListChangedEvents = false;
+            _tasks.Clear();
+
+            foreach (var task in _allTasksCache)
+            {
+                // если строка поиска пуста, возвращает все элементы
+                if (string.IsNullOrEmpty(filterText))
+                {
+                    _tasks.Add(task);
+                    continue;
+                }
+
+                bool matchName = task.TaskName != null && task.TaskName.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool matchDesc = task.Description != null && task.Description.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (matchName || matchDesc)
+                {
+                    _tasks.Add(task);
+                }
+            }
+
+            _tasks.RaiseListChangedEvents = true;
+            _tasks.ResetBindings();
+        }
+
+
+
+        /// <summary>
+        /// Список столбцов для функции сортировки.
+        /// </summary>
+        public enum SortBy
+        {
+            Название,
+            Описание,
+            Дата,
+            Приоритет,
+            Выполнено
+        }
+
     }
 }
